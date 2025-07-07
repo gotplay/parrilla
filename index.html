@@ -6,24 +6,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    body { background: black; color: white; font-family: sans-serif; margin: 0; padding: 0; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 10px; }
-    .canal { background: #111; border: 1px solid red; padding: 10px; border-radius: 10px; text-align: center; cursor: pointer; }
-    .estado { font-size: 0.8em; margin-top: 5px; }
-    video { width: 100%; max-width: 720px; margin: 20px auto; display: block; border: 3px solid red; border-radius: 12px; }
+    body { background: black; color: white; font-family: sans-serif; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding: 10px; }
+    .canal { background: #111; border: 2px solid red; padding: 10px; border-radius: 12px; text-align: center; cursor: pointer; }
+    .estado { margin-top: 5px; font-size: 0.9em; }
+    video { width: 100%; max-width: 700px; display: block; margin: 20px auto; border: 3px solid red; border-radius: 10px; }
   </style>
 </head>
 <body>
   <h2 style="text-align:center;">📺 Parrilla de Canales</h2>
   <div class="grid" id="listaCanales"></div>
-
   <video id="player" controls autoplay></video>
 
   <script>
+    const VPS = 'http://167.86.72.150'; // ← cambia si usas otro
     const canales = [
-      { nombre: "ESPN2", url: "http://45.235.37.254/espn2hd/index.m3u8" },
-      { nombre: "ESPN", url: "http://45.235.37.254/espnhd/index.m3u8" },
-      // Puedes agregar más canales aquí
+      { nombre: "ESPN 2", url: "http://167.86.72.150/proxy.php?url=http://45.235.37.254/espn2hd/index.m3u8
+" },
+      { nombre: "ESPN",   url: "http://45.235.37.254/espnhd/index.m3u8" }
     ];
 
     const lista = document.getElementById("listaCanales");
@@ -35,23 +35,22 @@
       card.innerHTML = `<strong>${canal.nombre}</strong><div class="estado">⏳ Verificando...</div>`;
       lista.appendChild(card);
 
-      // Verificación del canal
-      fetch(canal.url, { method: "HEAD" })
-        .then(res => {
+      // Verificar si el canal está online usando check.php en tu VPS
+      fetch(`${VPS}/check.php?url=${encodeURIComponent(canal.url)}`)
+        .then(r => r.json())
+        .then(data => {
           const estado = card.querySelector(".estado");
-          if (res.ok) {
+          if (data.status === "online") {
             estado.innerHTML = "🟢 En vivo";
             estado.style.color = "lime";
-            card.onclick = () => reproducir(canal.url);
+            card.onclick = () => reproducir(`${VPS}/proxy.php?url=${encodeURIComponent(canal.url)}`);
           } else {
             estado.innerHTML = "🔴 Sin señal";
             estado.style.color = "red";
           }
         })
         .catch(() => {
-          const estado = card.querySelector(".estado");
-          estado.innerHTML = "🔴 Sin señal";
-          estado.style.color = "red";
+          card.querySelector(".estado").innerHTML = "🔴 Sin señal";
         });
     });
 
@@ -60,7 +59,7 @@
         const hls = new Hls();
         hls.loadSource(url);
         hls.attachMedia(video);
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
       } else {
         alert("Tu navegador no soporta HLS");
@@ -69,5 +68,6 @@
   </script>
 </body>
 </html>
+
 
 
