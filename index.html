@@ -2,71 +2,106 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Parrilla de Canales</title>
+  <title>Parrilla IPTV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    body { background: black; color: white; font-family: sans-serif; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding: 10px; }
-    .canal { background: #111; border: 2px solid red; padding: 10px; border-radius: 12px; text-align: center; cursor: pointer; }
-    .estado { margin-top: 5px; font-size: 0.9em; }
-    video { width: 100%; max-width: 700px; display: block; margin: 20px auto; border: 3px solid red; border-radius: 10px; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      text-align: center;
+    }
+
+    h1 {
+      color: red;
+      margin: 20px 0;
+    }
+
+    .botones {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      max-width: 800px;
+      margin: 0 auto 20px;
+      padding: 0 10px;
+    }
+
+    .boton {
+      background: #111;
+      border: 2px solid red;
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: bold;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    .boton:hover {
+      background: red;
+      color: black;
+    }
+
+    video {
+      width: 100%;
+      max-width: 720px;
+      margin: 20px auto;
+      display: block;
+      border: 3px solid red;
+      border-radius: 12px;
+      background: #111;
+    }
+
+    .info {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
   </style>
 </head>
 <body>
-  <h2 style="text-align:center;">📺 Parrilla de Canales</h2>
-  <div class="grid" id="listaCanales"></div>
+
+  <h1>📺 IPTV en Vivo</h1>
+
+  <div class="botones">
+    <a href="?canal=http://167.86.72.150/proxy.php?url=http://45.235.37.254/espn2hd/index.m3u8" class="boton">🏈 Deportes</a>
+    <a href="?canal=http://45.235.37.254/series/index.m3u8" class="boton">🎬 Series</a>
+    <a href="?canal=http://45.235.37.254/peliculas/index.m3u8" class="boton">🍿 Películas</a>
+    <a href="?canal=http://45.235.37.254/infantil/index.m3u8" class="boton">🧸 Infantil</a>
+    <a href="?canal=http://45.235.37.254/nacionales/index.m3u8" class="boton">🌎 Nacionales</a>
+  </div>
+
   <video id="player" controls autoplay></video>
+  <div class="info" id="info">Selecciona un canal para comenzar</div>
 
   <script>
-    const VPS = 'http://167.86.72.150'; // ← cambia si usas otro
-    const canales = [
-      { nombre: "ESPN 2", url: "http://167.86.72.150/proxy.php?url=http://45.235.37.254/espn2hd/index.m3u8" },
-      { nombre: "ESPN",   url: "http://45.235.37.254/espnhd/index.m3u8" }
-    ];
+    const urlParams = new URLSearchParams(window.location.search);
+    const canalOriginal = urlParams.get('canal');
+    const player = document.getElementById('player');
+    const info = document.getElementById('info');
 
-    const lista = document.getElementById("listaCanales");
-    const video = document.getElementById("player");
+    if (canalOriginal) {
+      const proxy = "http://167.86.72.150/proxy.php?url=" + encodeURIComponent(canalOriginal);
+      info.innerHTML = `🎥 Cargando canal desde:<br><code>${canalOriginal}</code>`;
 
-    canales.forEach(canal => {
-      const card = document.createElement("div");
-      card.className = "canal";
-      card.innerHTML = `<strong>${canal.nombre}</strong><div class="estado">⏳ Verificando...</div>`;
-      lista.appendChild(card);
-
-      // Verificar si el canal está online usando check.php en tu VPS
-      fetch(`${VPS}/check.php?url=${encodeURIComponent(canal.url)}`)
-        .then(r => r.json())
-        .then(data => {
-          const estado = card.querySelector(".estado");
-          if (data.status === "online") {
-            estado.innerHTML = "🟢 En vivo";
-            estado.style.color = "lime";
-            card.onclick = () => reproducir(`${VPS}/proxy.php?url=${encodeURIComponent(canal.url)}`);
-          } else {
-            estado.innerHTML = "🔴 Sin señal";
-            estado.style.color = "red";
-          }
-        })
-        .catch(() => {
-          card.querySelector(".estado").innerHTML = "🔴 Sin señal";
-        });
-    });
-
-    function reproducir(url) {
       if (Hls.isSupported()) {
         const hls = new Hls();
-        hls.loadSource(url);
-        hls.attachMedia(video);
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
+        hls.loadSource(proxy);
+        hls.attachMedia(player);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
+        hls.on(Hls.Events.ERROR, () => {
+          info.innerHTML = "❌ Error al cargar el canal.";
+        });
+      } else if (player.canPlayType('application/vnd.apple.mpegurl')) {
+        player.src = proxy;
+        player.addEventListener('loadedmetadata', () => player.play());
       } else {
-        alert("Tu navegador no soporta HLS");
+        info.innerHTML = "❌ Tu navegador no soporta HLS.";
       }
     }
   </script>
+
 </body>
 </html>
-
-
-
