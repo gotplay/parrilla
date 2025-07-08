@@ -3,77 +3,202 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Parrilla de Canales</title>
+  <title>Canales en Vivo</title>
+  <script src="//ssl.p.jwpcdn.com/player/v/8.21.0/jwplayer.js"></script>
+  <script>
+    jwplayer.key = 'XSuP4qMl+9tK17QNb+4+th2Pm9AWgMO/cYH8CI0HGGr7bdjo';
+  </script>
   <style>
     body {
       background-color: #111;
-      color: white;
-      font-family: sans-serif;
+      color: #fff;
       margin: 0;
-      padding: 0;
+      font-family: sans-serif;
     }
+
+    h1 {
+      text-align: center;
+      color: #ff3c3c;
+      padding: 1rem;
+    }
+
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 1rem;
       padding: 1rem;
     }
+
     .canal {
-      background: #222;
-      padding: 1rem;
+      background-color: #222;
+      border: 2px solid #ff3c3c;
       border-radius: 10px;
       text-align: center;
+      padding: 1rem;
       cursor: pointer;
-      border: 2px solid red;
+      transition: 0.2s;
     }
+
     .canal:hover {
-      background: #333;
+      background-color: #333;
+      transform: scale(1.05);
     }
-    .reproductor {
+
+    .estado {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 6px;
+      display: block;
+    }
+
+    #modal-player {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.95);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 9999;
+      padding: 1rem;
+    }
+
+    #player {
       width: 100%;
-      max-width: 100%;
-      height: 300px;
-      background: black;
+      max-width: 800px;
+      aspect-ratio: 16 / 9;
+    }
+
+    .btns {
+      margin-top: 1rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      background: #ff3c3c;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #e00000;
     }
   </style>
 </head>
 <body>
 
-  <h2 style="text-align: center; padding: 1rem;">📺 Parrilla de Canales</h2>
+  <h1>📺 Canales en Vivo</h1>
 
-  <div class="grid" id="lista-canales">
-    <!-- Canales -->
-  </div>
+  <div class="grid" id="lista-canales"></div>
 
-  <div id="player-container" style="padding: 1rem;">
-    <video id="player" class="reproductor" controls autoplay></video>
+  <div id="modal-player">
+    <div id="player"></div>
+    <div class="btns">
+      <button class="btn" onclick="cerrarReproductor()">✖ Cerrar</button>
+      <button class="btn" onclick="irPantallaCompleta()">🖥️ Pantalla completa</button>
+    </div>
   </div>
 
   <script>
     const canales = [
       {
+        nombre: "ESPN",
+        url: "http://45.235.37.254/espnhd/index.m3u8"
+      },
+            {
         nombre: "ESPN 2",
-        url: "http://45.235.37.254/espn2hd/index.m3u8"
+        url: "http://167.86.72.150/proxy.php?url=http://45.235.37.254/espn2hd/index.m3u8"
       },
       {
-        nombre: "ESPN Premium",
-        url: "https://redirector.rudo.video/hls-video/567ffde3fa319fadf3419efda25619456231dfea/latina/latina.smil/playlist.m3u8"
+        nombre: "ESPN 3",
+        url: "http://167.86.72.150/proxy.php?url=http://45.235.37.254/espn2hd/index.m3u8"
+      },
+      {
+        nombre: "ESPN 4",
+        url: "http://167.86.72.150/proxy.php?url=http://bantel-cdn4.iptvperu.tv:1935/7v5vVh/espn4.stream/playlist.m3u8"
+      },
+      {
+        nombre: "ESPN 6",
+        url: "http://bantel-cdn4.iptvperu.tv:1935/e43Gyk/espn6.stream/playlist.m3u8"
+      },
+      {
+        nombre: "ESPN PREMIUN",
+        url: "http://167.86.72.150/proxy.php?url=http://45.235.37.254/espnpremiumhd/index.m3u8"
+      },
+      {
+        nombre: "DIRECTV OPC1",
+        url: "http://167.86.72.150/proxy.php?url=http://104.238.205.28:8989/278758_.m3u8"
+      },
+      {
+        nombre: "DIRECTV OPC2",
+        url: "http://167.86.72.150/dgo2arg/index.m3u8"
+      },
+            {
+        nombre: "DIRECTV OPC3",
+        url: "http://167.86.72.150/proxy.php?url=http://38.211.242.128:8001/play/a09s/index.m3u8"
       }
     ];
 
-    const contenedor = document.getElementById("lista-canales");
-    const player = document.getElementById("player");
+    const lista = document.getElementById("lista-canales");
 
     canales.forEach(canal => {
       const div = document.createElement("div");
       div.className = "canal";
-      div.textContent = canal.nombre;
-      div.onclick = () => {
-        player.src = canal.url;
-        player.play();
-      };
-      contenedor.appendChild(div);
+      div.innerHTML = `<strong>${canal.nombre}</strong><br><span class="estado">⏳ Verificando...</span>`;
+      div.onclick = () => reproducir(canal.url, canal.nombre);
+      lista.appendChild(div);
+
+      // Verificar si el canal está online usando tu VPS
+      fetch(`http://167.86.72.150/check.php?url=${encodeURIComponent(canal.url)}`)
+        .then(r => r.json())
+        .then(data => {
+          const estado = div.querySelector(".estado");
+          if (data.status === "online") {
+            estado.textContent = "🟢 En vivo";
+          } else {
+            estado.textContent = "🔴 Sin señal";
+          }
+        })
+        .catch(() => {
+          const estado = div.querySelector(".estado");
+          estado.textContent = "🔴 Error";
+        });
     });
+
+    function reproducir(url, nombre) {
+      document.getElementById("modal-player").style.display = "flex";
+      jwplayer("player").setup({
+        file: url,
+        title: nombre,
+        autostart: true,
+        width: "100%",
+        aspectratio: "16:9"
+      });
+    }
+
+    function cerrarReproductor() {
+      jwplayer("player").remove();
+      document.getElementById("modal-player").style.display = "none";
+    }
+
+    function irPantallaCompleta() {
+      const container = jwplayer("player").getContainer();
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+      }
+    }
   </script>
+
 </body>
 </html>
