@@ -3,199 +3,157 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Canales en Vivo</title>
-  <script src="//ssl.p.jwpcdn.com/player/v/8.21.0/jwplayer.js"></script>
-  <script>
-    jwplayer.key = 'XSuP4qMl+9tK17QNb+4+th2Pm9AWgMO/cYH8CI0HGGr7bdjo';
-  </script>
+  <title>Evento en Vivo</title>
+  <script src="https://cdn.jwplayer.com/libraries/IDzF9Zmk.js"></script>
   <style>
     body {
-      background-color: #111;
-      color: #fff;
       margin: 0;
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: #fff;
     }
 
-    h1 {
+    header {
+      background: linear-gradient(to right, #00ff00, #007700);
+      padding: 15px;
       text-align: center;
-      color: #ff3c3c;
-      padding: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 1rem;
-      padding: 1rem;
-    }
-
-    .canal {
-      background-color: #222;
-      border: 2px solid #ff3c3c;
-      border-radius: 10px;
+    .evento {
       text-align: center;
-      padding: 1rem;
-      cursor: pointer;
-      transition: 0.2s;
+      margin: 20px;
+      font-size: 1.2rem;
     }
 
-    .canal:hover {
-      background-color: #333;
-      transform: scale(1.05);
-    }
-
-    .estado {
-      font-size: 14px;
-      color: #aaa;
-      margin-top: 6px;
-      display: block;
-    }
-
-    #modal-player {
-      position: fixed;
-      inset: 0;
-      background-color: rgba(0, 0, 0, 0.95);
-      display: none;
+    .canales {
+      display: flex;
       justify-content: center;
-      align-items: center;
-      flex-direction: column;
+      gap: 15px;
+      margin: 20px;
+      flex-wrap: wrap;
+    }
+
+    .canal-btn {
+      padding: 10px 20px;
+      border: none;
+      background-color: #00ff00;
+      color: #000;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .canal-btn:hover {
+      background-color: #33ff33;
+    }
+
+    /* Reproductor modal centrado horizontal, un poco más abajo (25%) */
+    .reproductor-modal {
+      display: none;
+      position: fixed;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      width: 80%;
+      max-width: 640px;
+      height: 360px;
+      background-color: #111;
+      border: 3px solid #00ff00;
+      border-radius: 10px;
       z-index: 9999;
-      padding: 1rem;
+      box-shadow: 0 0 25px #00ff00;
     }
 
     #player {
       width: 100%;
-      max-width: 800px;
-      aspect-ratio: 16 / 9;
+      height: 100%;
     }
 
-    .btns {
-      margin-top: 1rem;
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .btn {
-      background: #ff3c3c;
+    .close-btn {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      background-color: #00ff00;
+      color: black;
       border: none;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-size: 16px;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
       cursor: pointer;
+      font-weight: bold;
+      z-index: 10000;
     }
 
-    .btn:hover {
-      background: #e00000;
+    .error-msg {
+      position: absolute;
+      bottom: 10px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: red;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
 
-  <h1>📺 Canales en Vivo</h1>
+  <header>⚽ Mundial de Clubes 2025</header>
 
-  <div class="grid" id="lista-canales"></div>
+  <div class="evento">
+    🕒 14:00 - PSG vs Real Madrid
+  </div>
 
-  <div id="modal-player">
+  <div class="canales">
+    <button class="canal-btn" onclick="abrirReproductor('https://cdn.jwplayer.com/manifests/yp34SRmf.m3u8')">Opción 1</button>
+    <button class="canal-btn" onclick="abrirReproductor('https://fakestream.com/error-test.m3u8')">Opción 2 (Falla)</button>
+    <button class="canal-btn" onclick="abrirReproductor('https://cdn.jwplayer.com/manifests/ZxYwVuTs.m3u8')">Opción 3</button>
+  </div>
+
+  <div class="reproductor-modal" id="reproductor">
+    <button class="close-btn" onclick="cerrarReproductor()">×</button>
     <div id="player"></div>
-    <div class="btns">
-      <button class="btn" onclick="cerrarReproductor()">✖ Cerrar</button>
-      <button class="btn" onclick="irPantallaCompleta()">🖥️ Pantalla completa</button>
-    </div>
+    <div class="error-msg" id="errorMsg" style="display:none;">❌ No se pudo reproducir este canal</div>
   </div>
 
   <script>
-    const canales = [
-      {
-        nombre: "ESPN",
-        url: "http://45.235.37.254/espnhd/index.m3u8"
-      },
-            {
-        nombre: "ESPN 2",
-        url: "http://167.86.72.150/proxy.php?url=http://45.235.37.254/espn2hd/index.m3u8"
-      },
-      {
-        nombre: "ESPN 3",
-        url: "http://167.86.72.150/proxy.php?url=http://45.235.37.254/espn2hd/index.m3u8"
-      },
-      {
-        nombre: "ESPN 4",
-        url: "http://167.86.72.150/proxy.php?url=http://bantel-cdn4.iptvperu.tv:1935/7v5vVh/espn4.stream/playlist.m3u8"
-      },
-      {
-        nombre: "ESPN 6",
-        url: "http://bantel-cdn4.iptvperu.tv:1935/e43Gyk/espn6.stream/playlist.m3u8"
-      },
-      {
-        nombre: "ESPN PREMIUN",
-        url: "http://167.86.72.150/proxy.php?url=http://45.235.37.254/espnpremiumhd/index.m3u8"
-      },
-      {
-        nombre: "DIRECTV OPC1",
-        url: "http://167.86.72.150/proxy.php?url=http://104.238.205.28:8989/278758_.m3u8"
-      },
-      {
-        nombre: "DIRECTV OPC2",
-        url: "http://167.86.72.150/dgo2arg/index.m3u8"
-      },
-            {
-        nombre: "DIRECTV OPC3",
-        url: "http://167.86.72.150/proxy.php?url=http://38.211.242.128:8001/play/a09s/index.m3u8"
-      }
-    ];
+    let playerInstance;
 
-    const lista = document.getElementById("lista-canales");
+    function abrirReproductor(url) {
+      const contenedor = document.getElementById('reproductor');
+      const errorMsg = document.getElementById('errorMsg');
+      contenedor.style.display = 'block';
+      errorMsg.style.display = 'none';
 
-    canales.forEach(canal => {
-      const div = document.createElement("div");
-      div.className = "canal";
-      div.innerHTML = `<strong>${canal.nombre}</strong><br><span class="estado">⏳ Verificando...</span>`;
-      div.onclick = () => reproducir(canal.url, canal.nombre);
-      lista.appendChild(div);
-
-      // Verificar si el canal está online usando tu VPS
-      fetch(`http://167.86.72.150/check.php?url=${encodeURIComponent(canal.url)}`)
-        .then(r => r.json())
-        .then(data => {
-          const estado = div.querySelector(".estado");
-          if (data.status === "online") {
-            estado.textContent = "🟢 En vivo";
-          } else {
-            estado.textContent = "🔴 Sin señal";
-          }
-        })
-        .catch(() => {
-          const estado = div.querySelector(".estado");
-          estado.textContent = "🔴 Error";
+      if (playerInstance) {
+        playerInstance.load([{ file: url }]);
+        playerInstance.play(true);
+      } else {
+        playerInstance = jwplayer("player").setup({
+          file: url,
+          width: "100%",
+          height: "100%",
+          autostart: true,
+          mute: false
         });
-    });
 
-    function reproducir(url, nombre) {
-      document.getElementById("modal-player").style.display = "flex";
-      jwplayer("player").setup({
-        file: url,
-        title: nombre,
-        autostart: true,
-        width: "100%",
-        aspectratio: "16:9"
+        playerInstance.on('error', function() {
+          errorMsg.style.display = 'block';
+        });
+      }
+
+      playerInstance.on('setupError', function() {
+        errorMsg.style.display = 'block';
       });
     }
 
     function cerrarReproductor() {
-      jwplayer("player").remove();
-      document.getElementById("modal-player").style.display = "none";
-    }
-
-    function irPantallaCompleta() {
-      const container = jwplayer("player").getContainer();
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if (container.webkitRequestFullscreen) {
-        container.webkitRequestFullscreen();
-      } else if (container.msRequestFullscreen) {
-        container.msRequestFullscreen();
+      const contenedor = document.getElementById('reproductor');
+      contenedor.style.display = 'none';
+      if (playerInstance) {
+        playerInstance.stop();
       }
     }
   </script>
